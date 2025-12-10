@@ -94,7 +94,6 @@
             align-items: center;
             z-index: 10;
             background: var(--void-black);
-            /* TIGHTER PADDING overall */
             padding: 15px 15px 50px 15px; 
         }
         
@@ -440,6 +439,16 @@
         const carouselImages = ['Lucas.png', 'Mike.png', 'Will.png', 'Eleven.png', 'Dustin.png', 'Jonathan.png', 'Nancy.png', 'Demogorgon.png'];
         let carouselIndex = 0;
 
+        // --- PRELOADER (FIX) ---
+        // Forces all images to load immediately in the background
+        function preloadImages() {
+            carouselImages.forEach((src) => {
+                const img = new Image();
+                img.src = src;
+            });
+        }
+        preloadImages(); // Run immediately
+
         // --- GAME STATE ---
         let currentLives = 3;
         let currentLevelId = 'level-1'; 
@@ -468,7 +477,7 @@
         ];
         let vocabStage = 0;
 
-        // --- LEVEL 4 DATA (3 Sentences - UPDATED) ---
+        // --- LEVEL 4 DATA (3 Sentences) ---
         const scrambleData = [
             { correct: ["THE", "GATE", "IS", "OPENING"], mixed: ["OPENING", "IS", "THE", "GATE"] },
             { correct: ["DEMOGORGONS", "ARE", "COMING", "THROUGH"], mixed: ["COMING", "DEMOGORGONS", "THROUGH", "ARE"] },
@@ -508,24 +517,38 @@
             }, 1000); 
         }
 
+        // --- CAROUSEL LOGIC (UPDATED WITH ONLOAD FIX) ---
         function runCarousel() {
             if (carouselIndex < carouselImages.length) {
                 const imgElement = document.getElementById('carousel-image');
-                // Set source
+                
+                // Set the source
                 imgElement.src = carouselImages[carouselIndex];
                 
-                // Slight delay to ensure src loads before fading in
-                setTimeout(() => imgElement.classList.add('fade-in-image'), 50);
+                // IMPORTANT: Wait for load before fading in
+                imgElement.onload = function() {
+                    // Slight delay to ensure DOM is ready
+                    setTimeout(() => imgElement.classList.add('fade-in-image'), 50);
 
-                // Wait 2 seconds, then fade out
-                setTimeout(() => {
-                    imgElement.classList.remove('fade-in-image');
-                    // Wait for CSS transition (0.5s) before swapping next image
+                    // Wait 2 seconds of VISIBLE time, then fade out
                     setTimeout(() => {
-                        carouselIndex++;
-                        runCarousel();
-                    }, 500);
-                }, 2000); // How long image stays visible
+                        imgElement.classList.remove('fade-in-image');
+                        
+                        // Wait for CSS transition (0.5s) before swapping next image
+                        setTimeout(() => {
+                            carouselIndex++;
+                            runCarousel();
+                        }, 500);
+                    }, 2000); 
+                };
+
+                // Safety: Skip image if it fails to load so game doesn't freeze
+                imgElement.onerror = function() {
+                    console.log("Failed to load: " + carouselImages[carouselIndex]);
+                    carouselIndex++;
+                    runCarousel();
+                };
+
             } else {
                 endCarousel();
             }
